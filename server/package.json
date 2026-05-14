@@ -1,0 +1,20 @@
+{
+	"name": "notes-backend",
+	"version": "1.0.0",
+	"description": "Backend server for a collaborative, AI-integrated notes workspace.",
+	"keywords": [
+		"node",
+		"express",
+		"mongodb",
+		"notes-app",
+		"ai-integration"
+	],
+	"license": "ISC",
+	"author": "Shivanshu Sonwani",
+	"type": "module",
+	"main": "index.js",
+	"scripts": {
+		"dev": "node --watch index.js",
+		"start": "node index.js"
+	}
+}
