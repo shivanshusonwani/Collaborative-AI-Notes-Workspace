@@ -1,6 +1,7 @@
 import express from "express";
 import sessionConfig from "./config/session.js";
 import authRoutes from "./routes/auth.routes.js";
+import noteRoutes from "./routes/note.routes.js";
 
 const app = express();
 
@@ -15,5 +16,6 @@ app.get("/health", (req, res) => {
 });
 
 app.use("/api/auth", authRoutes);
+app.use("/api/notes", noteRoutes);
 
 export default app;
