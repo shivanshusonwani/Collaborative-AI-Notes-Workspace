@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 const Signup = () => {
 	const [form, setForm] = useState({
@@ -7,6 +8,10 @@ const Signup = () => {
 		email: "",
 		password: "",
 	});
+	const [error, setError] = useState("");
+
+	const { signup } = useAuth();
+	const navigate = useNavigate();
 
 	const handleChange = (e) => {
 		setForm({ ...form, [e.target.name]: e.target.value });
@@ -14,7 +19,16 @@ const Signup = () => {
 
 	const handleSubmit = async (e) => {
 		e.preventDefault();
-		//
+		setError("");
+
+		const res = await signup(form);
+
+		if (res.success) {
+			alert("User registered successfully");
+			navigate("/");
+		} else {
+			setError(res.message);
+		}
 	};
 
 	return (

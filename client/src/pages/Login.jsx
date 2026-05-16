@@ -1,8 +1,13 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 const Login = () => {
 	const [form, setForm] = useState({ email: "", password: "" });
+	const [error, setError] = useState("");
+
+	const { login } = useAuth();
+	const navigate = useNavigate();
 
 	const handleChange = (e) => {
 		setForm({ ...form, [e.target.name]: e.target.value });
@@ -10,7 +15,15 @@ const Login = () => {
 
 	const handleSubmit = async (e) => {
 		e.preventDefault();
-		//
+		setError("");
+
+		const res = await login(form);
+
+		if (res.success) {
+			navigate("/");
+		} else {
+			setError(res.message);
+		}
 	};
 
 	return (
