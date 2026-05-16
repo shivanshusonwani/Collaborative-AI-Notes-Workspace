@@ -20,7 +20,7 @@ const Login = () => {
 		const res = await login(form);
 
 		if (res.success) {
-			navigate("/");
+			navigate("/app");
 		} else {
 			setError(res.message);
 		}

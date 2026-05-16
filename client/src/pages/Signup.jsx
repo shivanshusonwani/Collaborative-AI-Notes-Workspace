@@ -25,7 +25,7 @@ const Signup = () => {
 
 		if (res.success) {
 			alert("User registered successfully");
-			navigate("/");
+			navigate("/login");
 		} else {
 			setError(res.message);
 		}
