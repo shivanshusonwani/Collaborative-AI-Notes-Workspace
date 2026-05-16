@@ -16,11 +16,26 @@ const noteSchema = new Schema(
 			type: String,
 			default: "",
 		},
+		isArchived: {
+			type: Boolean,
+			default: false,
+		},
+		isPublic: {
+			type: Boolean,
+			default: false,
+		},
+		publicShareId: {
+			type: String,
+			unique: true,
+			sparse: true,
+		},
 	},
 	{
 		timestamps: true,
 	},
 );
+
+noteSchema.index({ title: "text", content: "text" });
 
 const Note = model("Note", noteSchema);
 export default Note;
