@@ -11,7 +11,7 @@ export const NoteProvider = ({ children }) => {
 
 	const { user } = useAuth();
 
-	const fetchNotes = async () => {
+	const fetchNotes = async (isArchivedView = false) => {
 		if (!user) {
 			setNotes([]);
 			setSelectedNote(null);
@@ -21,7 +21,8 @@ export const NoteProvider = ({ children }) => {
 		setLoadingNotes(true);
 
 		try {
-			const res = await API.get("/notes");
+			const targetUrl = isArchivedView ? "/notes/archived" : "/notes";
+			const res = await API.get(targetUrl);
 			setNotes(res.data);
 
 			if (res.data.length > 0) {
@@ -96,16 +97,50 @@ export const NoteProvider = ({ children }) => {
 		}
 	};
 
+	const toggleArchiveNote = async (id) => {
+		try {
+			const res = await API.patch(`/notes/${id}/archive`);
+			setNotes((prev) => prev.filter((note) => note._id !== id));
+			return res.data;
+		} catch (error) {
+			console.error("Failed to archive note:", error);
+			return { success: false, error };
+		}
+	};
+
+	const toggleShareNote = async (id) => {
+		try {
+			const res = await API.patch(`/notes/${id}/share-toggle`);
+			setNotes((prev) =>
+				prev.map((note) =>
+					note._id === id
+						? {
+								...note,
+								isPublic: res.data.isPublic,
+								publicShareId: res.data.shareUrl?.split("/").pop(),
+							}
+						: note,
+				),
+			);
+			return res.data;
+		} catch (error) {
+			console.error("Failed to toggle sharing note status:", error);
+			return { success: false, error };
+		}
+	};
+
 	return (
 		<NoteContext.Provider
 			value={{
 				notes,
 				fetchNotes,
-				selectedNote,
-				setSelectedNote,
 				createNote,
 				saveNoteChanges,
 				deleteNote,
+				selectedNote,
+				setSelectedNote,
+				toggleArchiveNote,
+				toggleShareNote,
 				loadingNotes,
 			}}>
 			{children}

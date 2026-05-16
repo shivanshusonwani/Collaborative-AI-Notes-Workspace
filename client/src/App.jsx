@@ -48,6 +48,10 @@ function App() {
 							path='note/:id'
 							element={<CreateNote />}
 						/>
+						<Route
+							path='archived'
+							element={<Notes />}
+						/>
 					</Route>
 				</Route>
 			</Route>,

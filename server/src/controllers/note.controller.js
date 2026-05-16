@@ -37,6 +37,19 @@ export const fetchNotes = async (req, res) => {
 	}
 };
 
+export const fetchArchivedNotes = async (req, res) => {
+	try {
+		const archivedNotes = await Note.find({
+			owner: req.session.userId,
+			isArchived: true,
+		}).sort({ updatedAt: -1 });
+
+		res.status(200).json(archivedNotes);
+	} catch (error) {
+		res.status(500).json({ message: "Error fetching archived notes" });
+	}
+};
+
 export const getNoteById = async (req, res) => {
 	try {
 		const note = await Note.findById(req.params.id);

@@ -22,7 +22,7 @@ const Sidebar = () => {
 	};
 
 	const navLinkClass = ({ isActive }) =>
-		`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors font-semibold cursor-pointer ${
+		`flex items-center gap-2 px-4 py-3 rounded-lg transition-colors font-semibold cursor-pointer ${
 			isActive
 				? "bg-violet-100 text-violet-600"
 				: "text-neutral-600 hover:bg-neutral-100"
@@ -44,7 +44,7 @@ const Sidebar = () => {
 					<Plus size={"22"} /> new note
 				</button>
 
-				<div className='flex flex-col gap-2 border border-violet-200 rounded-lg'>
+				<div className='flex flex-col rounded-lg'>
 					<NavLink
 						to='/app'
 						end
@@ -54,17 +54,10 @@ const Sidebar = () => {
 					</NavLink>
 
 					<NavLink
-						// to='/app/archived'
-						className='flex items-center gap-2 px-4 py-2 rounded-lg'>
+						to='/app/archived'
+						className={navLinkClass}>
 						<Archive size={"18"} />
 						<h2 className=''>Archived</h2>
-					</NavLink>
-
-					<NavLink
-						// to='/app/insights'
-						className='flex items-center gap-2 px-4 py-2 rounded-lg'>
-						<Lightbulb size={"18"} />
-						<h2 className=''>Insight</h2>
 					</NavLink>
 				</div>
 				<div className='flex items-center gap-2 bg-neutral-100 rounded-lg px-4 py-2'>

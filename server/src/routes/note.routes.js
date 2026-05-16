@@ -3,6 +3,7 @@ import {
 	createNote,
 	deleteNote,
 	fetchNotes,
+	fetchArchivedNotes,
 	getNoteById,
 	getSharedNote,
 	toggleArchive,
@@ -19,6 +20,8 @@ router.use(protect);
 
 router.post("/", createNote);
 router.get("/", fetchNotes);
+router.get("/archived", fetchArchivedNotes);
+
 router.get("/:id", getNoteById);
 router.patch("/:id", updateNote);
 router.delete("/:id", deleteNote);
