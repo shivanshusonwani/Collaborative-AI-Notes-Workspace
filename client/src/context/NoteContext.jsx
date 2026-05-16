@@ -79,6 +79,23 @@ export const NoteProvider = ({ children }) => {
 		}
 	};
 
+	const deleteNote = async (id) => {
+		try {
+			await API.delete(`/notes/${id}`);
+
+			setNotes((prevNotes) => prevNotes.filter((note) => note._id !== id));
+
+			if (selectedNote?._id === id) {
+				setSelectedNote(null);
+			}
+
+			return { success: true };
+		} catch (error) {
+			console.error("Failed to delete note:", error);
+			return { success: false, error };
+		}
+	};
+
 	return (
 		<NoteContext.Provider
 			value={{
@@ -88,6 +105,7 @@ export const NoteProvider = ({ children }) => {
 				setSelectedNote,
 				createNote,
 				saveNoteChanges,
+				deleteNote,
 				loadingNotes,
 			}}>
 			{children}

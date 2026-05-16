@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 import { useNotes } from "../context/NoteContext";
-import { FileText, Clock, Plus } from "lucide-react";
+import { FileText, Clock, Plus, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const Notes = () => {
-	const { notes, setSelectedNote } = useNotes();
+	const { notes, setSelectedNote, createNote, deleteNote } = useNotes();
 	const navigate = useNavigate();
 
 	const formatCardDate = (isoString) => {
@@ -19,6 +19,20 @@ const Notes = () => {
 	const handleNoteClick = (note) => {
 		setSelectedNote(note);
 		navigate(`/app/note/${note._id}`);
+	};
+
+	const handleCreateFirstNote = async () => {
+		const newNote = await createNote();
+		if (newNote) {
+			navigate("/app/new");
+		}
+	};
+
+	const handleDelete = async (e, id) => {
+		e.stopPropagation();
+		if (window.confirm("Are you sure you want to delete this note?")) {
+			await deleteNote(id);
+		}
 	};
 
 	return (
@@ -38,7 +52,7 @@ const Notes = () => {
 					</div>
 
 					<button
-						onClick={() => navigate("/app/new")}
+						onClick={handleCreateFirstNote}
 						className='flex items-center gap-2 px-5 py-3 rounded-xl bg-violet-600 text-white font-bold cursor-pointer shadow-sm'>
 						<Plus size={18} /> Create First Note
 					</button>
@@ -63,6 +77,13 @@ const Notes = () => {
 								<span className='flex items-center gap-1.5 bg-neutral-50 px-2.5 py-1 rounded-lg border border-neutral-100'>
 									<Clock size={12} /> {formatCardDate(note.updatedAt)}
 								</span>
+
+								<button
+									onClick={(e) => handleDelete(e, note._id)}
+									className='p-1.5 rounded-md text-neutral-400 hover:text-red-500 hover:bg-red-50 transition-all'
+									title='Delete Note'>
+									<Trash2 size={14} />
+								</button>
 							</div>
 						</div>
 					))}
