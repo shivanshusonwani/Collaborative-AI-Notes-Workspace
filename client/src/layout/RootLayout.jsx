@@ -6,7 +6,7 @@ const RootLayout = () => {
 	return (
 		<div className='h-screen flex flex-col'>
 			<Header />
-			<div className='container flex-1'>
+			<div className='flex-1'>
 				<Outlet />
 			</div>
 		</div>
