@@ -1,4 +1,5 @@
 import Note from "../models/note.model.js";
+import User from "../models/user.model.js";
 import crypto from "node:crypto";
 
 export const createNote = async (req, res) => {
@@ -26,11 +27,17 @@ export const createNote = async (req, res) => {
 export const fetchNotes = async (req, res) => {
 	try {
 		const notes = await Note.find({
-			owner: req.session.userId,
 			isArchived: false,
-		}).sort({
-			updatedAt: -1,
-		});
+			$or: [
+				{ owner: req.session.userId },
+				{ collaborators: req.session.userId },
+			],
+		})
+			.populate("owner", "name email")
+			.populate("collaborators", "name email")
+			.sort({
+				updatedAt: -1,
+			});
 		res.status(200).json(notes);
 	} catch (error) {
 		res.status(500).json({ message: "Error fetching notes" });
@@ -40,8 +47,11 @@ export const fetchNotes = async (req, res) => {
 export const fetchArchivedNotes = async (req, res) => {
 	try {
 		const archivedNotes = await Note.find({
-			owner: req.session.userId,
 			isArchived: true,
+			$or: [
+				{ owner: req.session.userId },
+				{ collaborators: req.session.userId },
+			],
 		}).sort({ updatedAt: -1 });
 
 		res.status(200).json(archivedNotes);
@@ -88,10 +98,13 @@ export const updateNote = async (req, res) => {
 			});
 		}
 
-		if (note.owner.toString() !== req.session.userId) {
-			return res.status(403).json({
-				message: "Unauthorized: You do not own this note",
-			});
+		const isOwner = note.owner.toString() === req.session.userId;
+		const isCollaborator = note.collaborators.includes(req.session.userId);
+
+		if (!isOwner && !isCollaborator) {
+			return res
+				.status(403)
+				.json({ message: "Forbidden: Unauthorized modification access" });
 		}
 
 		if (title) note.title = title;
@@ -197,5 +210,92 @@ export const deleteNote = async (req, res) => {
 		res.status(200).json({ message: "Note deleted successfully" });
 	} catch (error) {
 		res.status(500).json({ message: "Error deleting note" });
+	}
+};
+
+export const addCollaborator = async (req, res) => {
+	try {
+		const { email } = req.body;
+		const note = await Note.findById(req.params.id);
+
+		if (!note)
+			return res.status(404).json({ message: "Note resource not found" });
+
+		if (note.owner.toString() !== req.session.userId) {
+			return res.status(403).json({
+				message: "Only the author document owner can add collaborators",
+			});
+		}
+
+		const userToInvite = await User.findOne({
+			email: email.toLowerCase().trim(),
+		});
+		if (!userToInvite) {
+			return res.status(404).json({
+				message: "No registered user account found with that email address",
+			});
+		}
+
+		if (userToInvite._id.toString() === req.session.userId) {
+			return res
+				.status(400)
+				.json({ message: "You are already the host document author owner" });
+		}
+
+		if (note.collaborators.includes(userToInvite._id)) {
+			return res
+				.status(400)
+				.json({ message: "User is already listed as an invited collaborator" });
+		}
+
+		note.collaborators.push(userToInvite._id);
+		await note.save();
+
+		res.status(200).json({
+			message: "Collaborator appended successfully!",
+			collaborators: note.collaborators,
+		});
+	} catch (error) {
+		res.status(500).json({ message: "Internal workspace modification error" });
+	}
+};
+
+export const removeCollaborator = async (req, res) => {
+	try {
+		const { id, collaboratorId } = req.params;
+
+		const note = await Note.findById(id);
+		if (!note) {
+			return res.status(404).json({ message: "Note resource not found" });
+		}
+
+		if (note.owner.toString() !== req.session.userId) {
+			return res.status(403).json({
+				message:
+					"Forbidden: Only the document owner can manage collaborator privileges",
+			});
+		}
+
+		if (!note.collaborators.includes(collaboratorId)) {
+			return res
+				.status(400)
+				.json({ message: "User is not a collaborator on this note" });
+		}
+
+		note.collaborators.pull(collaboratorId);
+		await note.save();
+
+		const updatedNote = await Note.findById(id)
+			.populate("owner", "name email")
+			.populate("collaborators", "name email");
+
+		res.status(200).json({
+			message: "Collaborator privileges revoked successfully",
+			note: updatedNote,
+		});
+	} catch (error) {
+		res
+			.status(500)
+			.json({ message: "Internal server collaborator removal error" });
 	}
 };

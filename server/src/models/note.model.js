@@ -29,6 +29,12 @@ const noteSchema = new Schema(
 			unique: true,
 			sparse: true,
 		},
+		collaborators: [
+			{
+				type: Schema.Types.ObjectId,
+				ref: "User",
+			},
+		],
 	},
 	{
 		timestamps: true,

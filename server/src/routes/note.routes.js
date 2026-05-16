@@ -9,6 +9,8 @@ import {
 	toggleArchive,
 	togglePublicShare,
 	updateNote,
+	addCollaborator,
+	removeCollaborator,
 } from "../controllers/note.controller.js";
 import { protect } from "../middleware/auth.middleware.js";
 
@@ -25,6 +27,9 @@ router.get("/archived", fetchArchivedNotes);
 router.get("/:id", getNoteById);
 router.patch("/:id", updateNote);
 router.delete("/:id", deleteNote);
+
+router.post("/:id/collaborators", addCollaborator);
+router.delete("/:id/collaborators/:collaboratorId", removeCollaborator);
 
 router.patch("/:id/archive", toggleArchive);
 router.patch("/:id/share-toggle", togglePublicShare);

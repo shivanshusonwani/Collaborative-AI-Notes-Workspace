@@ -129,6 +129,35 @@ export const NoteProvider = ({ children }) => {
 		}
 	};
 
+	const addCollaborator = async (noteId, emailString) => {
+		try {
+			const res = await API.post(`/notes/${noteId}/collaborators`, {
+				email: emailString,
+			});
+			await fetchNotes(false);
+			return { success: true, message: res.data.message };
+		} catch (error) {
+			console.error("Collaboration addition failed:", error);
+			return { success: false, error };
+		}
+	};
+
+	const removeCollaborator = async (noteId, collaboratorId) => {
+		try {
+			const res = await API.delete(
+				`/notes/${noteId}/collaborators/${collaboratorId}`,
+			);
+
+			await fetchNotes(window.location.pathname.includes("archived"));
+			return {
+				success: true,
+				message: res.data.message || "Collaborator removed successfully",
+			};
+		} catch (error) {
+			console.error("Failed to remove collaborator.", error);
+		}
+	};
+
 	return (
 		<NoteContext.Provider
 			value={{
@@ -141,6 +170,8 @@ export const NoteProvider = ({ children }) => {
 				setSelectedNote,
 				toggleArchiveNote,
 				toggleShareNote,
+				addCollaborator,
+				removeCollaborator,
 				loadingNotes,
 			}}>
 			{children}

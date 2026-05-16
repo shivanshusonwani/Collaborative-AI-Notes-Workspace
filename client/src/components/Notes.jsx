@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNotes } from "../context/NoteContext";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
 	Clock,
 	MoreVertical,
@@ -9,29 +9,42 @@ import {
 	Globe,
 	Lock,
 	Trash2,
-	ExternalLink,
+	Clipboard,
+	Users,
+	UserPlus,
+	X,
+	XCircle,
 } from "lucide-react";
 
 const Notes = () => {
 	const {
 		notes,
-		fetchNotes,
 		loadingNotes,
 		deleteNote,
 		setSelectedNote,
-		saveNoteChanges,
 		toggleArchiveNote,
 		toggleShareNote,
+		fetchNotes,
+		addCollaborator,
+		removeCollaborator,
 	} = useNotes();
-	const navigate = useNavigate();
 
+	const navigate = useNavigate();
 	const location = useLocation();
 	const isArchivedTab = location.pathname.includes("archived");
 
 	const [activeMenuId, setActiveMenuId] = useState(null);
-	const dropdownRef = useRef(null);
+	const [colabModalNote, setColabModalNote] = useState(null);
+	const [colabEmail, setColabEmail] = useState("");
+	const [isSubmitting, setIsSubmitting] = useState(false);
 
-	const BACKEND_URL = "http://localhost:8080";
+	const dropdownRef = useRef(null);
+	const BACKEND_API_BASE = "http://localhost:5000";
+
+	useEffect(() => {
+		fetchNotes(isArchivedTab);
+		setActiveMenuId(null);
+	}, [isArchivedTab]);
 
 	const formatCardDate = (isoString) => {
 		if (!isoString) return "";
@@ -44,9 +57,7 @@ const Notes = () => {
 	};
 
 	const handleNoteClick = (note) => {
-		if (typeof setSelectedNote === "function") {
-			setSelectedNote(note);
-		}
+		setSelectedNote(note);
 		navigate(`/app/note/${note._id}`);
 	};
 
@@ -57,41 +68,41 @@ const Notes = () => {
 
 	const handleCopyLink = (e, shareId) => {
 		e.stopPropagation();
-		const apiSharedUrl = `${BACKEND_URL}/api/notes/share/${shareId}`;
+		const apiSharedUrl = `${BACKEND_API_BASE}/api/notes/share/${shareId}`;
 		navigator.clipboard.writeText(apiSharedUrl);
 		alert("Backend shareable API link copied to clipboard!");
 		setActiveMenuId(null);
 	};
 
-	const handleToggleArchive = async (e, note) => {
-		e.stopPropagation();
-		if (typeof saveNoteChanges === "function") {
-			await saveNoteChanges(note._id, { isArchived: !note.isArchived });
+	const handleInviteCollaborator = async (e) => {
+		e.preventDefault();
+		if (!colabEmail.trim() || !colabModalNote) return;
+
+		setIsSubmitting(true);
+		const result = await addCollaborator(colabModalNote._id, colabEmail.trim());
+		setIsSubmitting(false);
+
+		if (result.success) {
+			alert(result.message || "Collaborator added successfully!");
+			setColabEmail("");
+			const updatedNote = notes.find((n) => n._id === colabModalNote._id);
+			if (updatedNote) setColabModalNote(updatedNote);
 		} else {
-			alert(
-				"saveNoteChanges function is missing from NoteContext configuration!",
-			);
+			alert(result.message);
 		}
-		setActiveMenuId(null);
 	};
 
-	const handleTogglePublic = async (e, note) => {
-		e.stopPropagation();
-		if (typeof saveNoteChanges === "function") {
-			const NextPublicState = !note.isPublic;
-			const updatePayload = {
-				isPublic: NextPublicState,
-				publicShareId: NextPublicState
-					? note.publicShareId || Math.random().toString(36).substring(2, 14)
-					: null,
-			};
-			await saveNoteChanges(note._id, updatePayload);
+	const handleRemoveCollaborator = async (collaboratorId) => {
+		if (!window.confirm("Revoke editing privileges for this collaborator?"))
+			return;
+
+		const result = await removeCollaborator(colabModalNote._id, collaboratorId);
+		if (result.success) {
+			const updatedNote = notes.find((n) => n._id === colabModalNote._id);
+			if (updatedNote) setColabModalNote(updatedNote);
 		} else {
-			alert(
-				"saveNoteChanges function is missing from NoteContext configuration!",
-			);
+			alert(result.message);
 		}
-		setActiveMenuId(null);
 	};
 
 	useEffect(() => {
@@ -104,28 +115,25 @@ const Notes = () => {
 		return () => document.removeEventListener("mousedown", handleOutsideClick);
 	}, []);
 
-	useEffect(() => {
-		fetchNotes(isArchivedTab);
-		setActiveMenuId(null);
-	}, [isArchivedTab]);
-
 	if (loadingNotes)
 		return (
 			<div className='p-6 text-neutral-500'>
-				Loading your workspace folders...
+				Loading your workspace cards...
 			</div>
 		);
 
 	return (
-		<div className='h-full p-4 flex flex-col max-w-6xl mx-auto overflow-y-auto'>
+		<div className='h-full p-4 flex flex-col max-w-6xl mx-auto overflow-y-auto relative'>
 			<h2 className='text-2xl font-bold mb-6 text-neutral-800'>
-				Your Notes Workspace
+				{isArchivedTab ? "Archived Vault Storage" : "Your Notes Workspace"}
 			</h2>
 
 			{notes.length === 0 ? (
-				<div className='text-center p-12 border-2 border-dashed border-neutral-200 rounded-2xl'>
+				<div className='text-center p-12 border-2 border-dashed border-neutral-200 rounded-2xl bg-white'>
 					<p className='text-neutral-500 italic'>
-						No active cards found inside this dashboard grid frame.
+						{isArchivedTab
+							? "No archived note files found."
+							: "No active workspace notes found."}
 					</p>
 				</div>
 			) : (
@@ -150,15 +158,28 @@ const Notes = () => {
 											ref={menuOpen ? dropdownRef : null}>
 											<button
 												onClick={(e) => handleMenuToggle(e, note._id)}
-												className='p-1 text-neutral-400 hover:text-neutral-600 rounded-lg hover:bg-neutral-100 transition-colors cursor-pointer'
-												title='Open context panel operations'>
+												className='p-1 text-neutral-400 hover:text-neutral-600 rounded-lg hover:bg-neutral-100 transition-colors cursor-pointer'>
 												<MoreVertical size={18} />
 											</button>
 
 											{menuOpen && (
 												<div
 													onClick={(e) => e.stopPropagation()}
-													className='absolute right-0 mt-1 w-42 bg-white border border-neutral-200 rounded-xl shadow-xl py-1.5 z-50 text-sm font-medium'>
+													className='absolute right-0 mt-1 w-48 bg-white border border-neutral-200 rounded-xl shadow-xl py-1.5 z-50 text-sm font-medium'>
+													<button
+														onClick={(e) => {
+															e.stopPropagation();
+															setColabModalNote(note);
+															setActiveMenuId(null);
+														}}
+														className='w-full px-4 py-2 text-left text-neutral-700 hover:bg-neutral-50 flex items-center gap-2 transition-colors cursor-pointer'>
+														<Users
+															size={14}
+															className='text-neutral-400'
+														/>{" "}
+														Collaborators
+													</button>
+
 													<button
 														onClick={async (e) => {
 															e.stopPropagation();
@@ -170,7 +191,7 @@ const Notes = () => {
 															<>
 																<RotateCcw
 																	size={14}
-																	className='text-emerald-500'
+																	className='text-violet-500'
 																/>{" "}
 																Send to Active
 															</>
@@ -218,7 +239,7 @@ const Notes = () => {
 															e.stopPropagation();
 															if (
 																window.confirm(
-																	"Are you sure you want to permanently purge this note?",
+																	"Are you sure you want to permanently delete this note?",
 																)
 															) {
 																deleteNote(note._id);
@@ -243,22 +264,131 @@ const Notes = () => {
 										<Clock size={12} /> {formatCardDate(note.updatedAt)}
 									</span>
 
-									{isPublic && note.publicShareId && (
-										<div
-											className='flex items-center gap-1.5'
-											onClick={(e) => e.stopPropagation()}>
+									<div
+										className='flex items-center gap-1.5'
+										onClick={(e) => e.stopPropagation()}>
+										{note.collaborators?.length > 0 && (
+											<span className='text-[11px] font-bold text-neutral-500 bg-neutral-100 px-2 py-0.5 rounded-md flex items-center gap-1'>
+												<Users size={11} /> {note.collaborators.length}
+											</span>
+										)}
+
+										{isPublic && note.publicShareId && (
 											<button
 												onClick={(e) => handleCopyLink(e, note.publicShareId)}
 												className='p-1.5 text-violet-600 hover:text-violet-700 hover:bg-violet-50 rounded-lg border border-violet-100 transition-colors flex items-center cursor-pointer'
-												title='Copy direct shareable link'>
-												<ExternalLink size={14} />
+												title='Copy direct link'>
+												<Clipboard size={14} />
 											</button>
-										</div>
-									)}
+										)}
+									</div>
 								</div>
 							</div>
 						);
 					})}
+				</div>
+			)}
+
+			{colabModalNote && (
+				<div className='fixed inset-0 bg-neutral-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150'>
+					<div className='w-full max-w-md bg-white rounded-2xl border border-neutral-200 shadow-2xl flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-150'>
+						<div className='p-4 border-b border-neutral-100 flex items-center justify-between'>
+							<div className='flex items-center gap-2'>
+								<Users
+									className='text-violet-600'
+									size={18}
+								/>
+								<h3 className='font-bold text-neutral-800 text-lg'>
+									Manage Access
+								</h3>
+							</div>
+							<button
+								onClick={() => {
+									setColabModalNote(null);
+									setColabEmail("");
+								}}
+								className='p-1 text-neutral-400 hover:text-neutral-600 hover:bg-neutral-50 rounded-xl transition-colors cursor-pointer'>
+								<X size={18} />
+							</button>
+						</div>
+
+						<div className='p-5 overflow-y-auto space-y-4 flex-1'>
+							<div>
+								<label className='block text-xs font-bold uppercase tracking-wider text-neutral-400 mb-2'>
+									Invite via registration email
+								</label>
+								<form
+									onSubmit={handleInviteCollaborator}
+									className='flex gap-2'>
+									<input
+										type='email'
+										required
+										placeholder='name@example.com'
+										value={colabEmail}
+										onChange={(e) => setColabEmail(e.target.value)}
+										className='flex-1 border border-neutral-200 px-3.5 py-2 rounded-xl text-sm outline-none focus:border-violet-500 transition-colors'
+									/>
+									<button
+										type='submit'
+										disabled={isSubmitting}
+										className='px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white font-semibold text-xs rounded-xl flex items-center gap-1.5 transition-all shadow-sm cursor-pointer disabled:bg-neutral-300'>
+										<UserPlus size={14} />
+										{isSubmitting ? "Inviting..." : "Invite"}
+									</button>
+								</form>
+							</div>
+
+							<div className='space-y-2 pt-2'>
+								<label className='block text-xs font-bold uppercase tracking-wider text-neutral-400'>
+									Who has active workspace access
+								</label>
+
+								<div className='divide-y divide-neutral-50 border border-neutral-100 rounded-xl overflow-hidden bg-neutral-50/50'>
+									<div className='p-3 flex items-center justify-between text-sm'>
+										<div className='min-w-0 flex-1 pr-4'>
+											<p className='font-semibold text-neutral-800 truncate'>
+												{colabModalNote.owner?.name || "Author Host"}
+												<span className='ml-1.5 text-[10px] font-bold bg-violet-100 text-violet-700 border border-violet-200 px-1.5 py-0.5 rounded'>
+													Owner
+												</span>
+											</p>
+											<p className='text-xs text-neutral-400 truncate'>
+												{colabModalNote.owner?.email}
+											</p>
+										</div>
+									</div>
+
+									{colabModalNote.collaborators?.length === 0 ? (
+										<div className='p-4 text-center text-xs text-neutral-400 italic'>
+											No external collaborators have been added to this note
+											yet.
+										</div>
+									) : (
+										colabModalNote.collaborators?.map((user) => (
+											<div
+												key={user._id}
+												className='p-3 flex items-center justify-between text-sm hover:bg-neutral-50 transition-colors'>
+												<div className='min-w-0 flex-1 pr-4'>
+													<p className='font-medium text-neutral-700 truncate'>
+														{user.name}
+													</p>
+													<p className='text-xs text-neutral-400 truncate'>
+														{user.email}
+													</p>
+												</div>
+												<button
+													onClick={() => handleRemoveCollaborator(user._id)}
+													className='text-neutral-400 hover:text-red-500 p-1 rounded-lg hover:bg-red-50 transition-all cursor-pointer'
+													title='Revoke access permissions'>
+													<XCircle size={15} />
+												</button>
+											</div>
+										))
+									)}
+								</div>
+							</div>
+						</div>
+					</div>
 				</div>
 			)}
 		</div>
