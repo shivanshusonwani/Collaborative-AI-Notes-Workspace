@@ -9,7 +9,7 @@ const Header = () => {
 	const isHomePage = location.pathname === "/";
 
 	return (
-		<header className='w-full shadow-md'>
+		<header className='w-full shadow-md z-10'>
 			<div className='max-w-7xl mx-auto px-8 pt-4 pb-2 flex justify-between'>
 				<Link to='/'>
 					<h1 className='text-2xl font-semibold'>CoLab Notes</h1>
