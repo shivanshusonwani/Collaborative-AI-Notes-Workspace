@@ -12,6 +12,7 @@ const sessionConfig = session({
 		secure: process.env.NODE_ENV === "production",
 		sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
 	},
+	proxy: process.env.NODE_ENV === "production" ? true : undefined,
 	store: MongoStore.create({
 		mongoUrl: process.env.MONGODB_URI,
 		collectionName: "sessions",
