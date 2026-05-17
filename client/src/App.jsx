@@ -12,6 +12,8 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import Dashboard from "./pages/Dashboard";
 import CreateNote from "./components/CreateNote";
 import Notes from "./components/Notes";
+import NotFound from "./pages/NotFound";
+import SharedNoteViewer from "./components/SharedNoteViewer";
 
 function App() {
 	const router = createBrowserRouter(
@@ -31,6 +33,11 @@ function App() {
 					path='signup'
 					element={<Signup />}
 				/>
+				<Route
+					path='notes/share/:shareId'
+					element={<SharedNoteViewer />}
+				/>
+
 				<Route element={<ProtectedRoute />}>
 					<Route
 						path='app'
@@ -54,6 +61,11 @@ function App() {
 						/>
 					</Route>
 				</Route>
+
+				<Route
+					path='*'
+					element={<NotFound />}
+				/>
 			</Route>,
 		),
 	);

@@ -123,7 +123,7 @@ const Notes = () => {
 
 	const handleCopyLink = (e, shareId) => {
 		e.stopPropagation();
-		const apiSharedUrl = `${import.meta.env.VITE_API_URL}/api/notes/share/${shareId}`;
+		const apiSharedUrl = `${window.location.origin}/notes/share/${shareId}`;
 		navigator.clipboard.writeText(apiSharedUrl);
 		alert("Shareable link copied to clipboard!");
 		setActiveMenuId(null);
