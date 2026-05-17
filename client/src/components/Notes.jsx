@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useNotes } from "../context/NoteContext";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
@@ -17,6 +17,7 @@ import {
 	Tag,
 	Hash,
 } from "lucide-react";
+import SearchBar from "./SearchBar";
 
 const Notes = () => {
 	const {
@@ -41,28 +42,64 @@ const Notes = () => {
 	const [isSubmitting, setIsSubmitting] = useState(false);
 
 	const [activeTag, setActiveTag] = useState("");
+	const [searchQuery, setSearchQuery] = useState("");
+	const dropdownRef = useRef(null);
 
-	const uniqueTags = React.useMemo(() => {
+	useEffect(() => {
+		fetchNotes(isArchivedTab);
+		setActiveMenuId(null);
+		setActiveTag("");
+	}, [isArchivedTab, fetchNotes]);
+
+	useEffect(() => {
+		if (colabModalNote) {
+			const currentLiveNote = notes.find((n) => n._id === colabModalNote._id);
+			if (currentLiveNote) {
+				setColabModalNote(currentLiveNote);
+			}
+		}
+	}, [notes, colabModalNote?._id]);
+
+	const uniqueTags = useMemo(() => {
 		const tagsSet = new Set();
 		notes.forEach((note) => {
 			if (Array.isArray(note.tags)) {
-				note.tags.forEach((t) => tagsSet.add(t));
+				note.tags.forEach((t) => {
+					if (t) tagsSet.add(t);
+				});
 			}
 		});
 		return Array.from(tagsSet);
 	}, [notes]);
 
-	useEffect(() => {
-		fetchNotes(isArchivedTab, activeTag);
-	}, [isArchivedTab, activeTag, fetchNotes]);
+	const filteredNotes = useMemo(() => {
+		return notes.filter((note) => {
+			if (activeTag && (!note.tags || !note.tags.includes(activeTag))) {
+				return false;
+			}
 
-	const dropdownRef = useRef(null);
-	// const BACKEND_API_BASE = "http://localhost:5000";
+			const query = searchQuery.toLowerCase().trim();
+			if (!query) return true;
+
+			const matchTitle = note.title?.toLowerCase().includes(query);
+			const matchContent = note.content?.toLowerCase().includes(query);
+			const matchTags = note.tags?.some((tag) =>
+				tag.toLowerCase().replace("#", "").includes(query.replace("#", "")),
+			);
+
+			return matchTitle || matchContent || matchTags;
+		});
+	}, [notes, searchQuery, activeTag]);
 
 	useEffect(() => {
-		fetchNotes(isArchivedTab);
-		setActiveMenuId(null);
-	}, [isArchivedTab]);
+		const handleOutsideClick = (event) => {
+			if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+				setActiveMenuId(null);
+			}
+		};
+		document.addEventListener("mousedown", handleOutsideClick);
+		return () => document.removeEventListener("mousedown", handleOutsideClick);
+	}, []);
 
 	const formatCardDate = (isoString) => {
 		if (!isoString) return "";
@@ -88,7 +125,7 @@ const Notes = () => {
 		e.stopPropagation();
 		const apiSharedUrl = `${import.meta.env.VITE_API_URL}/api/notes/share/${shareId}`;
 		navigator.clipboard.writeText(apiSharedUrl);
-		alert("Backend shareable API link copied to clipboard!");
+		alert("Shareable link copied to clipboard!");
 		setActiveMenuId(null);
 	};
 
@@ -103,8 +140,9 @@ const Notes = () => {
 		if (result.success) {
 			alert(result.message || "Collaborator added successfully!");
 			setColabEmail("");
-			const updatedNote = notes.find((n) => n._id === colabModalNote._id);
-			if (updatedNote) setColabModalNote(updatedNote);
+			if (result.note) {
+				setColabModalNote(result.note);
+			}
 		} else {
 			alert(result.message);
 		}
@@ -116,92 +154,79 @@ const Notes = () => {
 
 		const result = await removeCollaborator(colabModalNote._id, collaboratorId);
 		if (result.success) {
-			const updatedNote = notes.find((n) => n._id === colabModalNote._id);
-			if (updatedNote) setColabModalNote(updatedNote);
+			if (result.note) {
+				setColabModalNote(result.note);
+			}
 		} else {
 			alert(result.message);
 		}
 	};
 
-	useEffect(() => {
-		const handleOutsideClick = (event) => {
-			if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-				setActiveMenuId(null);
-			}
-		};
-		document.addEventListener("mousedown", handleOutsideClick);
-		return () => document.removeEventListener("mousedown", handleOutsideClick);
-	}, []);
-
 	if (loadingNotes)
 		return (
-			<div className='p-6 text-neutral-500'>
+			<div className='p-6 text-neutral-500 text-sm font-medium animate-pulse'>
 				Loading your workspace cards...
 			</div>
 		);
 
 	return (
 		<div className='h-full p-4 flex flex-col max-w-6xl mx-auto overflow-y-auto relative'>
-			<h2 className='text-2xl font-bold mb-6 text-neutral-800'>
+			<h2 className='text-2xl font-bold mb-4 text-neutral-800 tracking-tight'>
 				{isArchivedTab ? "Archived Vault Storage" : "Your Notes Workspace"}
 			</h2>
 
-			{!isArchivedTab &&
-				(() => {
-					const uniqueTags = [];
-					notes.forEach((note) => {
-						if (Array.isArray(note.tags)) {
-							note.tags.forEach((t) => {
-								if (t && !uniqueTags.includes(t)) uniqueTags.push(t);
-							});
-						}
-					});
+			{/* Global Search Bar Input */}
+			<SearchBar
+				searchQuery={searchQuery}
+				setSearchQuery={setSearchQuery}
+			/>
 
-					if (uniqueTags.length === 0) return null;
+			{/* Filter Pills Header Segment */}
+			{!isArchivedTab && uniqueTags.length > 0 && (
+				<div className='mb-6 flex flex-wrap items-center gap-2 border-b border-neutral-100 pb-4 mt-2'>
+					<span className='text-neutral-400 text-xs font-bold uppercase tracking-wider flex items-center gap-1 mr-2'>
+						<Tag size={13} /> Filter by:
+					</span>
 
-					return (
-						<div className='mb-6 flex flex-wrap items-center gap-2 border-b border-neutral-100 pb-4'>
-							<span className='text-neutral-400 text-xs font-bold uppercase tracking-wider flex items-center gap-1 mr-2'>
-								<Tag size={14} /> Filter by:
-							</span>
+					<button
+						onClick={() => setActiveTag("")}
+						className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+							activeTag === ""
+								? "bg-violet-600 text-white shadow-sm"
+								: "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+						}`}>
+						All Notes
+					</button>
 
-							<button
-								onClick={() => setActiveTag("")}
-								className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
-									activeTag === ""
-										? "bg-violet-600 text-white shadow-sm"
-										: "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
-								}`}>
-								All Notes
-							</button>
+					{uniqueTags.map((tag) => (
+						<button
+							key={tag}
+							onClick={() => setActiveTag(tag)}
+							className={`px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer ${
+								activeTag === tag
+									? "bg-violet-600 text-white shadow-sm"
+									: "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+							}`}>
+							<Hash size={11} /> {tag}
+						</button>
+					))}
+				</div>
+			)}
 
-							{uniqueTags.map((tag) => (
-								<button
-									key={tag}
-									onClick={() => setActiveTag(tag)}
-									className={`px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer ${
-										activeTag === tag
-											? "bg-violet-600 text-white shadow-sm"
-											: "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
-									}`}>
-									<Hash size={12} /> {tag}
-								</button>
-							))}
-						</div>
-					);
-				})()}
-
-			{notes.length === 0 ? (
-				<div className='text-center p-12 border-2 border-dashed border-neutral-200 rounded-2xl bg-white'>
-					<p className='text-neutral-500 italic'>
-						{isArchivedTab
-							? "No archived note files found."
-							: "No active workspace notes found."}
+			{/* Primary Grid Layout Cards Area */}
+			{filteredNotes.length === 0 ? (
+				<div className='text-center p-12 border-2 border-dashed border-neutral-200 rounded-2xl bg-white mt-4'>
+					<p className='text-neutral-400 text-sm italic'>
+						{searchQuery || activeTag
+							? `No records match current parameters.`
+							: isArchivedTab
+								? "No archived note files found."
+								: "No active workspace notes found."}
 					</p>
 				</div>
 			) : (
-				<div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
-					{notes.map((note) => {
+				<div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-4'>
+					{filteredNotes.map((note) => {
 						const isPublic = note.isPublic;
 						const menuOpen = activeMenuId === note._id;
 
@@ -216,6 +241,7 @@ const Notes = () => {
 											{note.title || "Untitled Document"}
 										</h3>
 
+										{/* Dropdown Action Target Anchor */}
 										<div
 											className='absolute right-0 top-0'
 											ref={menuOpen ? dropdownRef : null}>
@@ -239,7 +265,7 @@ const Notes = () => {
 														<Users
 															size={14}
 															className='text-neutral-400'
-														/>{" "}
+														/>
 														Collaborators
 													</button>
 
@@ -255,7 +281,7 @@ const Notes = () => {
 																<RotateCcw
 																	size={14}
 																	className='text-violet-500'
-																/>{" "}
+																/>
 																Send to Active
 															</>
 														) : (
@@ -263,7 +289,7 @@ const Notes = () => {
 																<Archive
 																	size={14}
 																	className='text-neutral-400'
-																/>{" "}
+																/>
 																Mark Archive
 															</>
 														)}
@@ -281,7 +307,7 @@ const Notes = () => {
 																<Lock
 																	size={14}
 																	className='text-amber-500'
-																/>{" "}
+																/>
 																Make Private
 															</>
 														) : (
@@ -289,7 +315,7 @@ const Notes = () => {
 																<Globe
 																	size={14}
 																	className='text-emerald-500'
-																/>{" "}
+																/>
 																Make Public
 															</>
 														)}
@@ -298,7 +324,7 @@ const Notes = () => {
 													<div className='border-t border-neutral-100 my-1'></div>
 
 													<button
-														onClick={(e) => {
+														onClick={async (e) => {
 															e.stopPropagation();
 															if (
 																window.confirm(
@@ -321,6 +347,7 @@ const Notes = () => {
 										{note.content || "Empty content canvas..."}
 									</p>
 
+									{/* Inline Card Tags Rendering row */}
 									{note.tags && note.tags.length > 0 && (
 										<div
 											className='flex flex-wrap gap-1.5 pt-2'
@@ -328,7 +355,14 @@ const Notes = () => {
 											{note.tags.map((t) => (
 												<span
 													key={t}
-													className='text-[10px] font-bold bg-neutral-100 text-neutral-600 px-2 py-0.5 rounded-md transition-colors hover:bg-violet-50 hover:text-violet-600'>
+													className={`text-[10px] font-bold px-2 py-0.5 rounded-md transition-colors ${
+														activeTag === t
+															? "bg-violet-600 text-white"
+															: "bg-neutral-100 text-neutral-600 hover:bg-violet-50 hover:text-violet-600"
+													}`}
+													onClick={() =>
+														setActiveTag(activeTag === t ? "" : t)
+													}>
 													#{t}
 												</span>
 											))}
@@ -366,6 +400,7 @@ const Notes = () => {
 				</div>
 			)}
 
+			{/* Access Manager / Collaboration Drawer Modal */}
 			{colabModalNote && (
 				<div className='fixed inset-0 bg-neutral-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150'>
 					<div className='w-full max-w-md bg-white rounded-2xl border border-neutral-200 shadow-2xl flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-150'>

@@ -37,7 +37,7 @@ const Sidebar = () => {
 				<h1 className='text-xl font-semibold'>{userName}</h1>
 			</div>
 
-			<div className='flex flex-col gap-2'>
+			<div className='flex flex-col gap-4'>
 				<button
 					onClick={handleCreateNote}
 					className='flex items-center justify-center gap-1 w-full text-lg bg-violet-500 text-white font-semibold p-2 rounded-xl cursor-pointer'>
@@ -59,27 +59,6 @@ const Sidebar = () => {
 						<Archive size={"18"} />
 						<h2 className=''>Archived</h2>
 					</NavLink>
-				</div>
-				<div className='flex items-center gap-2 bg-neutral-100 rounded-lg px-4 py-2'>
-					<Search
-						size={"18"}
-						className='text-neutral-400'
-					/>
-					<input
-						type='text'
-						placeholder='Search notes...'
-						className='w-full outline-none placeholder:text-neutral-400'
-					/>
-				</div>
-			</div>
-
-			<div className='h-full overflow-y-auto scrollbar-thin'>
-				<div className='flex flex-col gap-2 pr-1 py-2'>
-					{notes.length === 0 ? (
-						<p className='text-xs text-neutral-400 italic text-center mt-4'>
-							No notes created yet
-						</p>
-					) : null}
 				</div>
 			</div>
 		</div>
