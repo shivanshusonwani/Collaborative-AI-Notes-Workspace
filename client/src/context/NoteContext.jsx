@@ -16,7 +16,7 @@ export const NoteProvider = ({ children }) => {
 	const [loadingNotes, setLoadingNotes] = useState(false);
 	const [isAiLoading, setIsAiLoading] = useState(false);
 
-	const { user } = useAuth();
+	const { user, loading: authLoading } = useAuth();
 
 	const fetchNotes = useCallback(
 		async (isArchivedView = false, tagFilter = "") => {
@@ -53,6 +53,12 @@ export const NoteProvider = ({ children }) => {
 	useEffect(() => {
 		fetchNotes();
 	}, [user]);
+
+	useEffect(() => {
+		if (user && !authLoading) {
+			fetchNotes();
+		}
+	}, [user, authLoading]);
 
 	const createNote = async () => {
 		try {
