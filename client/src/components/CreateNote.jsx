@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useNotes } from "../context/NoteContext";
-// Added X and Hash icons
 import { Save, CheckCircle, ArrowLeft, X, Hash } from "lucide-react";
 
 const CreateNote = () => {

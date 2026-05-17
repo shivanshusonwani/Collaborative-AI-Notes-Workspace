@@ -9,7 +9,7 @@ import {
 	Globe,
 	Lock,
 	Trash2,
-	Clipboard,
+	ExternalLink,
 	Users,
 	UserPlus,
 	X,
@@ -57,7 +57,7 @@ const Notes = () => {
 	}, [isArchivedTab, activeTag, fetchNotes]);
 
 	const dropdownRef = useRef(null);
-	const BACKEND_API_BASE = "http://localhost:5000";
+	// const BACKEND_API_BASE = "http://localhost:5000";
 
 	useEffect(() => {
 		fetchNotes(isArchivedTab);
@@ -86,7 +86,7 @@ const Notes = () => {
 
 	const handleCopyLink = (e, shareId) => {
 		e.stopPropagation();
-		const apiSharedUrl = `${BACKEND_API_BASE}/api/notes/share/${shareId}`;
+		const apiSharedUrl = `${import.meta.env.VITE_API_URL}/api/notes/share/${shareId}`;
 		navigator.clipboard.writeText(apiSharedUrl);
 		alert("Backend shareable API link copied to clipboard!");
 		setActiveMenuId(null);
@@ -355,7 +355,7 @@ const Notes = () => {
 												onClick={(e) => handleCopyLink(e, note.publicShareId)}
 												className='p-1.5 text-violet-600 hover:text-violet-700 hover:bg-violet-50 rounded-lg border border-violet-100 transition-colors flex items-center cursor-pointer'
 												title='Copy direct link'>
-												<Clipboard size={14} />
+												<ExternalLink size={14} />
 											</button>
 										)}
 									</div>
