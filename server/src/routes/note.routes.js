@@ -13,6 +13,7 @@ import {
 	removeCollaborator,
 } from "../controllers/note.controller.js";
 import { protect } from "../middleware/auth.middleware.js";
+import { generateNoteInsights } from "../controllers/ai.controller.js";
 
 const router = express.Router();
 
@@ -33,5 +34,7 @@ router.delete("/:id/collaborators/:collaboratorId", removeCollaborator);
 
 router.patch("/:id/archive", toggleArchive);
 router.patch("/:id/share-toggle", togglePublicShare);
+
+router.post("/:id/ai", generateNoteInsights);
 
 export default router;

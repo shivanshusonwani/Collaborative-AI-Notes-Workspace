@@ -14,6 +14,7 @@ export const NoteProvider = ({ children }) => {
 	const [notes, setNotes] = useState([]);
 	const [selectedNote, setSelectedNote] = useState(null);
 	const [loadingNotes, setLoadingNotes] = useState(false);
+	const [isAiLoading, setIsAiLoading] = useState(false);
 
 	const { user } = useAuth();
 
@@ -172,6 +173,27 @@ export const NoteProvider = ({ children }) => {
 		}
 	};
 
+	const fetchOptimizedContent = async (noteId, currentContent) => {
+		setIsAiLoading(true);
+		try {
+			const response = await API.post(`/notes/${noteId}/ai`);
+
+			return (
+				response.data.optimizedText ||
+				response.data.note?.content ||
+				response.data.suggestion
+			);
+		} catch (error) {
+			console.error("AI processing failed:", error);
+			alert(
+				"Could not process optimization request right now. Make sure you saved the note first!",
+			);
+			return null;
+		} finally {
+			setIsAiLoading(false);
+		}
+	};
+
 	return (
 		<NoteContext.Provider
 			value={{
@@ -186,6 +208,8 @@ export const NoteProvider = ({ children }) => {
 				toggleShareNote,
 				addCollaborator,
 				removeCollaborator,
+				fetchOptimizedContent,
+				isAiLoading,
 				loadingNotes,
 			}}>
 			{children}

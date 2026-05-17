@@ -175,13 +175,11 @@ const Notes = () => {
 				{isArchivedTab ? "Archived Vault Storage" : "Your Notes Workspace"}
 			</h2>
 
-			{/* Global Search Bar Input */}
 			<SearchBar
 				searchQuery={searchQuery}
 				setSearchQuery={setSearchQuery}
 			/>
 
-			{/* Filter Pills Header Segment */}
 			{!isArchivedTab && uniqueTags.length > 0 && (
 				<div className='mb-6 flex flex-wrap items-center gap-2 border-b border-neutral-100 pb-4 mt-2'>
 					<span className='text-neutral-400 text-xs font-bold uppercase tracking-wider flex items-center gap-1 mr-2'>
@@ -213,7 +211,6 @@ const Notes = () => {
 				</div>
 			)}
 
-			{/* Primary Grid Layout Cards Area */}
 			{filteredNotes.length === 0 ? (
 				<div className='text-center p-12 border-2 border-dashed border-neutral-200 rounded-2xl bg-white mt-4'>
 					<p className='text-neutral-400 text-sm italic'>
@@ -241,7 +238,6 @@ const Notes = () => {
 											{note.title || "Untitled Document"}
 										</h3>
 
-										{/* Dropdown Action Target Anchor */}
 										<div
 											className='absolute right-0 top-0'
 											ref={menuOpen ? dropdownRef : null}>
@@ -347,7 +343,6 @@ const Notes = () => {
 										{note.content || "Empty content canvas..."}
 									</p>
 
-									{/* Inline Card Tags Rendering row */}
 									{note.tags && note.tags.length > 0 && (
 										<div
 											className='flex flex-wrap gap-1.5 pt-2'
@@ -400,7 +395,6 @@ const Notes = () => {
 				</div>
 			)}
 
-			{/* Access Manager / Collaboration Drawer Modal */}
 			{colabModalNote && (
 				<div className='fixed inset-0 bg-neutral-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150'>
 					<div className='w-full max-w-md bg-white rounded-2xl border border-neutral-200 shadow-2xl flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-150'>
