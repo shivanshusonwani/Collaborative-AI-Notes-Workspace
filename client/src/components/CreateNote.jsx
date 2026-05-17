@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useNotes } from "../context/NoteContext";
-import { Save, CheckCircle, ArrowLeft } from "lucide-react";
+// Added X and Hash icons
+import { Save, CheckCircle, ArrowLeft, X, Hash } from "lucide-react";
 
 const CreateNote = () => {
 	const { selectedNote, setSelectedNote, saveNoteChanges } = useNotes();
@@ -13,16 +14,37 @@ const CreateNote = () => {
 	const [isSaving, setIsSaving] = useState(false);
 	const [saveSuccess, setSaveSuccess] = useState(false);
 
+	const [tags, setTags] = useState([]);
+	const [tagInput, setTagInput] = useState("");
+
 	useEffect(() => {
 		if (selectedNote) {
 			setTitle(selectedNote.title || "");
 			setContent(selectedNote.content || "");
+			setTags(selectedNote.tags || []);
 		} else {
 			setTitle("");
 			setContent("");
+			setTags([]);
 		}
 		setSaveSuccess(false);
 	}, [selectedNote?._id]);
+
+	const handleKeyDown = (e) => {
+		if (e.key === "Enter" || e.key === ",") {
+			e.preventDefault();
+			const cleanedTag = tagInput.trim().toLowerCase().replace(/#/g, "");
+
+			if (cleanedTag && !tags.includes(cleanedTag)) {
+				setTags([...tags, cleanedTag]);
+				setTagInput("");
+			}
+		}
+	};
+
+	const removeTag = (tagToRemove) => {
+		setTags(tags.filter((t) => t !== tagToRemove));
+	};
 
 	const handleSave = async () => {
 		console.log(selectedNote);
@@ -34,6 +56,7 @@ const CreateNote = () => {
 		const result = await saveNoteChanges(selectedNote._id, {
 			title: title.trim() || "Untitled Document",
 			content,
+			tags,
 		});
 
 		setIsSaving(false);
@@ -79,6 +102,33 @@ const CreateNote = () => {
 					</button>
 				</div>
 			</div>
+
+			<div className='flex flex-wrap items-center gap-2 px-3 py-2 border border-neutral-100 rounded-xl bg-neutral-50/50 min-h-11 focus-within:border-violet-500 transition-colors'>
+				{tags.map((tag) => (
+					<span
+						key={tag}
+						className='inline-flex items-center gap-1 text-xs font-bold bg-violet-50 text-violet-600 px-2.5 py-1 rounded-lg border border-violet-100/40 animate-in fade-in zoom-in-95 duration-150'>
+						<Hash size={11} />
+						{tag}
+						<button
+							type='button'
+							onClick={() => removeTag(tag)}
+							className='text-violet-400 hover:text-violet-600 transition-colors rounded-sm cursor-pointer ml-0.5'>
+							<X size={11} />
+						</button>
+					</span>
+				))}
+
+				<input
+					type='text'
+					className='flex-1 bg-transparent outline-none border-none text-sm text-neutral-700 min-w-[150px] placeholder:text-neutral-400'
+					placeholder='Add tag (type and hit Enter or comma)...'
+					value={tagInput}
+					onChange={(e) => setTagInput(e.target.value)}
+					onKeyDown={handleKeyDown}
+				/>
+			</div>
+
 			<textarea
 				value={content}
 				onChange={(e) => setContent(e.target.value)}

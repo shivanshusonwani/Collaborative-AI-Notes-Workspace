@@ -1,4 +1,10 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import {
+	createContext,
+	useContext,
+	useState,
+	useEffect,
+	useCallback,
+} from "react";
 import API from "../services/api";
 import { useAuth } from "./AuthContext";
 
@@ -11,29 +17,37 @@ export const NoteProvider = ({ children }) => {
 
 	const { user } = useAuth();
 
-	const fetchNotes = async (isArchivedView = false) => {
-		if (!user) {
-			setNotes([]);
-			setSelectedNote(null);
-			return;
-		}
-
-		setLoadingNotes(true);
-
-		try {
-			const targetUrl = isArchivedView ? "/notes/archived" : "/notes";
-			const res = await API.get(targetUrl);
-			setNotes(res.data);
-
-			if (res.data.length > 0) {
-				setSelectedNote(res.data[0]);
+	const fetchNotes = useCallback(
+		async (isArchivedView = false, tagFilter = "") => {
+			if (!user) {
+				setNotes([]);
+				setSelectedNote(null);
+				return;
 			}
-		} catch (error) {
-			console.error("Error fetching notes from backend:", error);
-		} finally {
-			setLoadingNotes(false);
-		}
-	};
+
+			setLoadingNotes(true);
+
+			try {
+				let targetUrl = isArchivedView ? "/notes/archived" : "/notes";
+
+				if (!isArchivedView && tagFilter) {
+					targetUrl += `?tag=${encodeURIComponent(tagFilter)}`;
+				}
+
+				const res = await API.get(targetUrl);
+				setNotes(res.data);
+
+				if (res.data.length > 0) {
+					setSelectedNote(res.data[0]);
+				}
+			} catch (error) {
+				console.error("Error fetching notes from backend:", error);
+			} finally {
+				setLoadingNotes(false);
+			}
+		},
+		[],
+	);
 
 	useEffect(() => {
 		fetchNotes();

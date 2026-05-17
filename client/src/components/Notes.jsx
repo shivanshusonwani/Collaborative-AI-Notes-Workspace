@@ -14,6 +14,8 @@ import {
 	UserPlus,
 	X,
 	XCircle,
+	Tag,
+	Hash,
 } from "lucide-react";
 
 const Notes = () => {
@@ -37,6 +39,22 @@ const Notes = () => {
 	const [colabModalNote, setColabModalNote] = useState(null);
 	const [colabEmail, setColabEmail] = useState("");
 	const [isSubmitting, setIsSubmitting] = useState(false);
+
+	const [activeTag, setActiveTag] = useState("");
+
+	const uniqueTags = React.useMemo(() => {
+		const tagsSet = new Set();
+		notes.forEach((note) => {
+			if (Array.isArray(note.tags)) {
+				note.tags.forEach((t) => tagsSet.add(t));
+			}
+		});
+		return Array.from(tagsSet);
+	}, [notes]);
+
+	useEffect(() => {
+		fetchNotes(isArchivedTab, activeTag);
+	}, [isArchivedTab, activeTag, fetchNotes]);
 
 	const dropdownRef = useRef(null);
 	const BACKEND_API_BASE = "http://localhost:5000";
@@ -127,6 +145,51 @@ const Notes = () => {
 			<h2 className='text-2xl font-bold mb-6 text-neutral-800'>
 				{isArchivedTab ? "Archived Vault Storage" : "Your Notes Workspace"}
 			</h2>
+
+			{!isArchivedTab &&
+				(() => {
+					const uniqueTags = [];
+					notes.forEach((note) => {
+						if (Array.isArray(note.tags)) {
+							note.tags.forEach((t) => {
+								if (t && !uniqueTags.includes(t)) uniqueTags.push(t);
+							});
+						}
+					});
+
+					if (uniqueTags.length === 0) return null;
+
+					return (
+						<div className='mb-6 flex flex-wrap items-center gap-2 border-b border-neutral-100 pb-4'>
+							<span className='text-neutral-400 text-xs font-bold uppercase tracking-wider flex items-center gap-1 mr-2'>
+								<Tag size={14} /> Filter by:
+							</span>
+
+							<button
+								onClick={() => setActiveTag("")}
+								className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+									activeTag === ""
+										? "bg-violet-600 text-white shadow-sm"
+										: "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+								}`}>
+								All Notes
+							</button>
+
+							{uniqueTags.map((tag) => (
+								<button
+									key={tag}
+									onClick={() => setActiveTag(tag)}
+									className={`px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer ${
+										activeTag === tag
+											? "bg-violet-600 text-white shadow-sm"
+											: "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+									}`}>
+									<Hash size={12} /> {tag}
+								</button>
+							))}
+						</div>
+					);
+				})()}
 
 			{notes.length === 0 ? (
 				<div className='text-center p-12 border-2 border-dashed border-neutral-200 rounded-2xl bg-white'>
@@ -257,6 +320,20 @@ const Notes = () => {
 									<p className='text-neutral-500 text-sm line-clamp-4 leading-relaxed whitespace-pre-wrap break-all pt-1'>
 										{note.content || "Empty content canvas..."}
 									</p>
+
+									{note.tags && note.tags.length > 0 && (
+										<div
+											className='flex flex-wrap gap-1.5 pt-2'
+											onClick={(e) => e.stopPropagation()}>
+											{note.tags.map((t) => (
+												<span
+													key={t}
+													className='text-[10px] font-bold bg-neutral-100 text-neutral-600 px-2 py-0.5 rounded-md transition-colors hover:bg-violet-50 hover:text-violet-600'>
+													#{t}
+												</span>
+											))}
+										</div>
+									)}
 								</div>
 
 								<div className='pt-4 mt-4 border-t border-neutral-100 flex items-center justify-between gap-2'>

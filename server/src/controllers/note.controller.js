@@ -26,19 +26,24 @@ export const createNote = async (req, res) => {
 
 export const fetchNotes = async (req, res) => {
 	try {
-		const notes = await Note.find({
+		const userId = req.session.userId;
+		const { tag } = req.query;
+
+		let query = {
+			$or: [{ owner: userId }, { collaborators: userId }],
 			isArchived: false,
-			$or: [
-				{ owner: req.session.userId },
-				{ collaborators: req.session.userId },
-			],
-		})
+		};
+
+		if (tag) {
+			query.tags = tag;
+		}
+
+		const notes = await Note.find(query)
 			.populate("owner", "name email")
 			.populate("collaborators", "name email")
-			.sort({
-				updatedAt: -1,
-			});
-		res.status(200).json(notes);
+			.sort({ updatedAt: -1 });
+
+		return res.status(200).json(notes);
 	} catch (error) {
 		res.status(500).json({ message: "Error fetching notes" });
 	}
@@ -82,7 +87,7 @@ export const getNoteById = async (req, res) => {
 
 export const updateNote = async (req, res) => {
 	try {
-		const { title, content } = req.body;
+		const { title, content, tags } = req.body;
 
 		if (!title && !content) {
 			return res
@@ -109,6 +114,7 @@ export const updateNote = async (req, res) => {
 
 		if (title) note.title = title;
 		if (content) note.content = content;
+		if (tags) note.tags = tags;
 
 		const updatedNote = await note.save();
 

@@ -16,6 +16,10 @@ const noteSchema = new Schema(
 			type: String,
 			default: "",
 		},
+		tags: {
+			type: [String],
+			default: [],
+		},
 		isArchived: {
 			type: Boolean,
 			default: false,
@@ -41,7 +45,7 @@ const noteSchema = new Schema(
 	},
 );
 
-noteSchema.index({ title: "text", content: "text" });
+noteSchema.index({ title: "text", content: "text", tags: 1 });
 
 const Note = model("Note", noteSchema);
 export default Note;
